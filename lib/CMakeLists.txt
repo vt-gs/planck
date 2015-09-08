@@ -44,6 +44,7 @@ macro(expand_template SOURCE_LIST INPUT OUTPUT)
         endif()
 
         string(REPLACE ".t.c" ".${INPUT_TAG}${OUTPUT_TAG}.c" OUTPUT_SOURCE ${SOURCE})
+        string(REPLACE ".t.c" "" OUTPUT_NAME ${SOURCE})
 
         # Create a custom command for preprocessing templates
         add_custom_command(
@@ -55,8 +56,8 @@ macro(expand_template SOURCE_LIST INPUT OUTPUT)
         list(APPEND OUTPUT_SOURCES "${OUTPUT_SOURCE}")
         list(APPEND GENERATED_SOURCES "${PLANCK_BINARY_DIR}/lib/${OUTPUT_SOURCE}")
     endforeach()
-    add_custom_target(exec_tparser_${OUTPUT_SOURCE}_${INPUT}_${OUTPUT} DEPENDS ${OUTPUT_SOURCES})
-    list(APPEND TARGET_LIST exec_tparser_${OUTPUT_SOURCE}_${INPUT}_${OUTPUT})
+    add_custom_target(exec_tparser_${OUTPUT_NAME}_${INPUT_TAG}_${OUTPUT_TAG} DEPENDS ${OUTPUT_SOURCES})
+    list(APPEND TARGET_LIST exec_tparser_${OUTPUT_NAME}_${INPUT_TAG}_${OUTPUT_TAG})
 endmacro()
 
 ################################################
@@ -136,7 +137,7 @@ target_link_libraries(
     ${LIBFEC_LIBRARIES}
     ${PLANCK_LINKER_FLAGS}
 )
-add_dependencies(${PROJECT_NAME} "${TARGET_LIST}")
+add_dependencies(${PROJECT_NAME} ${TARGET_LIST})
 
 # Install the library files
 install(TARGETS ${PROJECT_NAME}

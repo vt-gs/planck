@@ -239,12 +239,11 @@ void pk_bfskdemod_destroy(pk_bfskdemod *fd)
 /* GMSK modem objects */
 typedef struct pk_gmskmod_s
 {
-    
 } pk_gmskmod;
 
 pk_gmskmod *pk_gmskmod_create()
 {
-    pk_gmskmod *gm = malloc(sizeof(pk_gmskmod));   
+    pk_gmskmod *gm = malloc(sizeof(pk_gmskmod));
 
     return gm;
 }
