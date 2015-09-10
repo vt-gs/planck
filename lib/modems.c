@@ -236,15 +236,145 @@ void pk_bfskdemod_destroy(pk_bfskdemod *fd)
 }
 
 
-/* GMSK modem objects */
-typedef struct pk_gmskmod_s
+/* FSK96 modem objects */
+typedef struct pk_fsk96mod_s
 {
-} pk_gmskmod;
+    unsigned int samp_sym;
+    unsigned char past;
 
-pk_gmskmod *pk_gmskmod_create()
+} pk_fsk96mod;
+
+pk_fsk96mod *pk_fsk96mod_create(
+    unsigned int samp_sym)
 {
-    pk_gmskmod *gm = malloc(sizeof(pk_gmskmod));
+    pk_fsk96mod *fm = malloc(sizeof(pk_fsk96mod));
+    fm->samp_sym = samp_sym;
 
-    return gm;
+    fm->past = 0;
+
+    return fm;
 }
 
+// execute on a bit and produce a number of samples per symbol
+void pk_fsk96mod_execute(pk_fsk96mod *fm, float *sym, unsigned char bit)
+{
+    if (bit == 0) fm->past = fm->past != 1;
+    float symbol = fm->past / fm->samp_sym;
+
+    sym[0] = symbol;
+
+    size_t i;
+    for (i = 1; i < fm->samp_sym; i++)
+        sym[i] = 0;
+}
+
+// process a batch of bits
+void pk_fsk96mod_process(
+    pk_fsk96mod *fm,
+    float *output,
+    const unsigned char *input,
+    size_t num)
+{
+    size_t i;
+    for (i = 0; i < num; i++)
+        pk_fsk96mod_execute(fm, &output[i*fm->samp_sym], input[i]);
+}
+
+// destroy the FSK96 modulator
+void pk_fsk96mod_destroy(pk_fsk96mod *fm)
+{
+    free(fm);
+}
+
+typedef struct pk_fsk96demod_s
+{
+    unsigned int samp_sym;
+
+    unsigned int diff;
+    unsigned int timer;
+    unsigned char past;
+
+    pk_circ_ff *window;
+    pk_block_uu *data;
+} pk_fsk96demod;
+
+pk_fsk96demod *pk_fsk96demod_create(unsigned int samp_sym)
+{
+    pk_fsk96demod *fd = malloc(sizeof(pk_fsk96demod));
+    fd->samp_sym = samp_sym;
+
+    fd->data = pk_block_uu_create(1024);
+
+    fd->diff = 0;
+    fd->timer = 0;
+    fd->past = 0;
+
+    fd->window = pk_circ_ff_create(fd->samp_sym);
+
+    return fd;
+}
+
+// execute on a symbol using integrate & dump filter
+// TODO: Improve this
+unsigned char pk_fsk96demod_execute(pk_fsk96demod *fd, const float *samples)
+{
+    float result = 0;
+
+    size_t i;
+    for (i = 0; i < fd->samp_sym; i++)
+       result += samples[i];
+
+    return result > 0;
+}
+
+// process a batch of samples
+void pk_fsk96demod_process(
+    pk_fsk96demod *fd,
+    const float *samples,
+    size_t num)
+{
+    pk_block_uu_clear(fd->data);
+
+    size_t i;
+    for (i = 0; i < num; i++) {
+        fd->timer++;
+
+        float wb[fd->samp_sym];
+        unsigned char match_filt;
+
+        pk_circ_ff_push(fd->window, samples[i]);
+        pk_circ_ff_read(fd->window, wb, fd->samp_sym);
+
+        match_filt = pk_fsk96demod_execute(fd, wb);
+
+        // adjust our timing
+        if (match_filt != fd->past) {
+            fd->diff = 1;
+            fd->past = match_filt;
+            fd->timer = fd->samp_sym / 2 + fd->samp_sym + 1;
+        }
+
+        // make a bit decision and push it
+        if (fd->timer >= 2*fd->samp_sym) {
+            unsigned char bit = fd->diff == 0;
+            pk_block_uu_push(fd->data, bit);
+            fd->timer = fd->samp_sym;
+            fd->diff = 0;
+        }
+    }
+}
+
+// return a pointer to the output block of data
+unsigned char *pk_fsk96demod_read(pk_fsk96demod *fd, size_t *nitems)
+{
+    *nitems = pk_block_uu_nitems(fd->data);
+    return pk_block_uu_ptr(fd->data);
+}
+
+void pk_fsk96demod_destroy(pk_fsk96demod *fd)
+{
+    pk_circ_ff_destroy(fd->window);
+    pk_block_uu_destroy(fd->data);
+
+    free(fd);
+}

@@ -279,10 +279,12 @@ void pk_dotprod_cc_destroy(pk_dotprod_cc *dp);
 
 
 /* Modems */
-/* Binary FSK modem meant for AFSK 1200 */
+/* AFSK modulator */
 // forward declarations declarations of the FSK modem
 typedef struct pk_bfskmod_s pk_bfskmod;
 typedef struct pk_bfskdemod_s pk_bfskdemod;
+typedef struct pk_fsk96mod_s pk_fsk96mod;
+typedef struct pk_fsk96demod_s pk_fsk96demod;
 
 // create an FSK modulator
 pk_bfskmod *pk_bfskmod_create(
@@ -306,6 +308,7 @@ void pk_bfskmod_process(
 // destroy the FSK modulator
 void pk_bfskmod_destroy(pk_bfskmod *fm);
 
+/* AFSK demodulator */
 // create an FSK demodulator
 pk_bfskdemod *pk_bfskdemod_create(
     unsigned int samp_sym,   // samples per symbol
@@ -331,6 +334,50 @@ unsigned char *pk_bfskdemod_read(pk_bfskdemod *fd, size_t *nitems);
 
 // destroy the FSK demodulator
 void pk_bfskdemod_destroy(pk_bfskdemod *fd);
+
+/* FSK9600 modulator */
+// create an FSK modulator
+pk_fsk96mod *pk_fsk96mod_create(
+    unsigned int samp_sym   // samples per symbol
+);
+
+// execute on a bit and produce a number of samples per symbol
+void pk_fsk96mod_execute(pk_fsk96mod *fm, float *sym, unsigned char bit);
+
+// process a batch of bits
+void pk_fsk96mod_process(
+    pk_fsk96mod *fm,
+    float *output,
+    const unsigned char *input,
+    size_t num
+);
+
+// destroy the FSK96 modulator
+void pk_fsk96mod_destroy(pk_fsk96mod *fm);
+
+/* FSK9600 demodulator */
+// create an FSK demodulator
+pk_fsk96demod *pk_fsk96demod_create(
+    unsigned int samp_sym   // samples per symbol
+);
+
+// execute on a symbol
+unsigned char pk_fsk96demod_execute(pk_fsk96demod *fd, const float *samples);
+
+// process a batch of samples
+// warning: clears output buffer upon execution
+void pk_fsk96demod_process(
+    pk_fsk96demod *fd,
+    const float *samples,
+    size_t num
+);
+
+// return a pointer to the output block of data
+// and reads out the number of bits decoded
+unsigned char *pk_fsk96demod_read(pk_fsk96demod *fd, size_t *nitems);
+
+// destroy the FSK demodulator
+void pk_fsk96demod_destroy(pk_fsk96demod *fd);
 
 
 /* Quadrature modulator */

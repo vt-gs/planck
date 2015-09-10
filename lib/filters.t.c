@@ -42,10 +42,12 @@ pk_fir_XX *pk_fir_XX_create(unsigned int order, const <O> *coeff)
 {
     pk_fir_XX *fir = malloc(sizeof(pk_fir_XX));
     fir->order = order;
-    fir->diff = pk_next2pow2(fir->order + 1) - fir->order - 1;
 
     unsigned int exponent = pk_next2pow(fir->order + 1);
-    unsigned int size = 1 << exponent;
+    unsigned int size = pk_next2pow2(fir->order + 1);
+
+    fir->diff = size - fir->order - 1;
+    assert(fir->diff >= 0);
 
     fir->buffer = calloc(size, sizeof(<I>));
     fir->mask = (1 << exponent) - 1;
