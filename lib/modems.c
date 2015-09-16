@@ -259,13 +259,13 @@ pk_fsk96mod *pk_fsk96mod_create(
 void pk_fsk96mod_execute(pk_fsk96mod *fm, float *sym, unsigned char bit)
 {
     if (bit == 0) fm->past = fm->past != 1;
-    float symbol = fm->past / fm->samp_sym;
+    float symbol = (float) (2* fm->past - 1) / fm->samp_sym;
 
     sym[0] = symbol;
 
     size_t i;
     for (i = 1; i < fm->samp_sym; i++)
-        sym[i] = 0;
+        sym[i] = symbol;
 }
 
 // process a batch of bits
